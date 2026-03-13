@@ -1,9 +1,17 @@
 import { getDb } from "./database";
 import type { Song, SongMetadata } from "./song-types";
 
-export async function getAllSongs(): Promise<Song[]> {
+export type SortColumn = "title" | "artist" | "album" | "duration";
+export type SortDirection = "asc" | "desc";
+
+export async function getAllSongs(
+  sortColumn: SortColumn = "title",
+  sortDirection: SortDirection = "desc",
+): Promise<Song[]> {
   const db = await getDb();
-  return db.select<Song[]>("SELECT * FROM songs ORDER BY artist, album, title");
+  const col = ["title", "artist", "album", "duration"].includes(sortColumn) ? sortColumn : "title";
+  const dir = sortDirection === "asc" ? "ASC" : "DESC";
+  return db.select<Song[]>(`SELECT * FROM songs ORDER BY ${col} ${dir}`);
 }
 
 export async function getSongByPath(filePath: string): Promise<Song | null> {

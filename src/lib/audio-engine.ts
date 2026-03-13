@@ -39,6 +39,10 @@ class AudioEngine {
 
     this.audio.addEventListener("error", () => {
       const err = this.audio.error?.message || "Unknown playback error";
+      // Import lazily to avoid circular dep at module init time
+      import("@/stores/ui-store").then(({ useUiStore }) => {
+        useUiStore.getState().showToast(`Playback error: ${err}`);
+      });
       this.callbacks.onError?.(err);
     });
   }

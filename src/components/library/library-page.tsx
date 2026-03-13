@@ -1,16 +1,49 @@
-import { useMemo } from "react";
-import { Play, Search } from "lucide-react";
+import { useMemo, useRef } from "react";
+import { Play, Search, ChevronUp, ChevronDown } from "lucide-react";
 import { useLibraryStore } from "@/stores/library-store";
 import { usePlayerStore } from "@/stores/player-store";
 import { useUiStore } from "@/stores/ui-store";
 import { CoverArt } from "@/components/common/cover-art";
 import { FolderPicker } from "@/components/folder-picker";
 import { cn } from "@/lib/utils";
+import { formatDuration } from "@/lib/utils";
+import type { SortColumn } from "@/lib/song-queries";
+
+// CSS equalizer bars for now-playing indicator
+function EqualizerBars({ active }: { active: boolean }) {
+  return (
+    <span className="flex items-end gap-px" aria-hidden="true">
+      {[3, 5, 4].map((h, i) => (
+        <span
+          key={i}
+          className={cn(
+            "w-0.5 rounded-sm bg-primary transition-all",
+            active ? "animate-pulse" : "opacity-50",
+          )}
+          style={{ height: `${active ? h * 2 : 4}px` }}
+        />
+      ))}
+    </span>
+  );
+}
+
+function SortIcon({ column, active, direction }: { column: SortColumn; active: boolean; direction: "asc" | "desc" }) {
+  if (!active) return <ChevronUp size={12} className="opacity-30" />;
+  return direction === "asc" ? <ChevronUp size={12} /> : <ChevronDown size={12} />;
+}
 
 export function LibraryPage() {
-  const { songs, isScanning } = useLibraryStore();
-  const { playSong, currentSong, isPlaying } = usePlayerStore();
+  const { songs, isScanning, sortColumn, sortDirection, toggleSort } = useLibraryStore();
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const playSong = usePlayerStore((s) => s.playSong);
   const { searchQuery, setSearchQuery } = useUiStore();
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Expose search focus for Ctrl+F shortcut (called from keyboard-shortcuts)
+  if (typeof window !== "undefined") {
+    (window as Record<string, unknown>).__focusSearch = () => searchRef.current?.focus();
+  }
 
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return songs;
@@ -32,6 +65,13 @@ export function LibraryPage() {
     if (filtered.length > 0) playSong(filtered[0]!, filtered);
   }
 
+  const SORT_COLS: { col: SortColumn; label: string; className?: string }[] = [
+    { col: "title", label: "Title" },
+    { col: "artist", label: "Artist" },
+    { col: "album", label: "Album", className: "hidden md:table-cell" },
+    { col: "duration", label: "Time", className: "w-16 text-right" },
+  ];
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
@@ -39,7 +79,8 @@ export function LibraryPage() {
         {filtered.length > 0 && (
           <button
             onClick={handlePlayAll}
-            className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            aria-label="Play all songs"
+            className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Play size={12} /> Play All
           </button>
@@ -47,11 +88,14 @@ export function LibraryPage() {
         <div className="relative ml-auto">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
+            ref={searchRef}
+            id="library-search"
             type="text"
-            placeholder="Search songs..."
+            placeholder="Search songs... (Ctrl+F)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-8 rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus:ring-1 focus:ring-ring"
+            aria-label="Search songs"
+            className="h-8 rounded-md border border-input bg-background pl-8 pr-3 text-sm outline-none focus:ring-1 focus:ring-ring focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
       </div>
@@ -71,10 +115,18 @@ export function LibraryPage() {
               <thead className="sticky top-0 bg-background">
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
                   <th className="w-10 px-3 py-2 text-center">#</th>
-                  <th className="px-3 py-2">Title</th>
-                  <th className="px-3 py-2">Artist</th>
-                  <th className="hidden px-3 py-2 md:table-cell">Album</th>
-                  <th className="w-16 px-3 py-2 text-right">Time</th>
+                  {SORT_COLS.map(({ col, label, className }) => (
+                    <th key={col} className={cn("px-3 py-2", className)}>
+                      <button
+                        onClick={() => toggleSort(col)}
+                        aria-label={`Sort by ${label}`}
+                        className="flex items-center gap-1 transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {label}
+                        <SortIcon column={col} active={sortColumn === col} direction={sortDirection} />
+                      </button>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -90,25 +142,36 @@ export function LibraryPage() {
                       )}
                     >
                       <td className="px-3 py-1.5 text-center">
-                        {isCurrent && isPlaying ? (
-                          <span className="text-primary">♪</span>
+                        {isCurrent ? (
+                          <EqualizerBars active={isPlaying} />
                         ) : (
-                          <span className="text-muted-foreground group-hover:hidden">{i + 1}</span>
+                          <>
+                            <span className="text-muted-foreground group-hover:hidden">{i + 1}</span>
+                            <Play size={12} className="mx-auto hidden text-foreground group-hover:block" />
+                          </>
                         )}
-                        <Play size={12} className="mx-auto hidden text-foreground group-hover:block" />
                       </td>
                       <td className="px-3 py-1.5">
                         <div className="flex items-center gap-2">
                           <CoverArt src={song.cover_art} size={32} />
-                          <span className={cn("truncate font-medium", isCurrent && "text-primary")}>
+                          <span
+                            title={song.title || "Unknown"}
+                            className={cn("truncate font-medium", isCurrent && "text-primary")}
+                          >
                             {song.title || "Unknown"}
                           </span>
                         </div>
                       </td>
-                      <td className="truncate px-3 py-1.5 text-muted-foreground">
+                      <td
+                        title={song.artist || "Unknown"}
+                        className="truncate px-3 py-1.5 text-muted-foreground"
+                      >
                         {song.artist || "Unknown"}
                       </td>
-                      <td className="hidden truncate px-3 py-1.5 text-muted-foreground md:table-cell">
+                      <td
+                        title={song.album || "Unknown"}
+                        className="hidden truncate px-3 py-1.5 text-muted-foreground md:table-cell"
+                      >
                         {song.album || "Unknown"}
                       </td>
                       <td className="px-3 py-1.5 text-right text-muted-foreground">
@@ -124,10 +187,4 @@ export function LibraryPage() {
       )}
     </div>
   );
-}
-
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }

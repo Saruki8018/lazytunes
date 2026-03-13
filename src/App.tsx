@@ -10,6 +10,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { LibraryPage } from "@/components/library/library-page";
 import { SettingsPage } from "@/components/settings/settings-page";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { ToastNotifications } from "@/components/common/toast-notifications";
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -48,8 +49,10 @@ export default function App() {
 
   if (!ready) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3">
+        {/* Spinning ring */}
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-base font-semibold text-muted-foreground">LazyTunes</p>
       </div>
     );
   }
@@ -63,6 +66,7 @@ export default function App() {
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </AppLayout>
+        <ToastNotifications />
       </MemoryRouter>
     </ErrorBoundary>
   );

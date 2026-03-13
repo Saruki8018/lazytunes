@@ -1,9 +1,10 @@
 import { create } from "zustand";
 import type { Song, ScanProgress } from "@/lib/song-types";
-import { getAllSongs } from "@/lib/song-queries";
+import { getAllSongs, type SortColumn, type SortDirection } from "@/lib/song-queries";
 import { selectMusicFolder, getSavedFolderPath, scanFolder } from "@/lib/library-scanner";
 import { startFileWatcher } from "@/lib/file-watcher";
 import { usePlayerStore } from "@/stores/player-store";
+import { useUiStore } from "@/stores/ui-store";
 
 interface LibraryStore {
   songs: Song[];
@@ -11,11 +12,16 @@ interface LibraryStore {
   scanProgress: ScanProgress | null;
   folderPath: string | null;
   initialized: boolean;
+  sortColumn: SortColumn;
+  sortDirection: SortDirection;
 
   initialize: () => Promise<void>;
   loadSongs: () => Promise<void>;
   selectFolder: () => Promise<void>;
   startScan: () => Promise<void>;
+  setSortColumn: (col: SortColumn) => void;
+  setSortDirection: (dir: SortDirection) => void;
+  toggleSort: (col: SortColumn) => void;
 }
 
 export const useLibraryStore = create<LibraryStore>((set, get) => ({
@@ -24,6 +30,8 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
   scanProgress: null,
   folderPath: null,
   initialized: false,
+  sortColumn: "title",
+  sortDirection: "desc",
 
   initialize: async () => {
     if (get().initialized) return;
@@ -40,14 +48,11 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     if (savedMuted !== null) {
       const muted = savedMuted === "true";
       const store = usePlayerStore.getState();
-      // Only toggle if current mute state differs from saved
       if (store.isMuted !== muted) store.toggleMute();
     }
 
-    // Load existing songs from DB
     await get().loadSongs();
 
-    // Auto-scan if folder is set, then wire file watcher
     if (folderPath) {
       await get().startScan();
       startFileWatcher(folderPath, () => get().startScan()).catch((err) => {
@@ -57,7 +62,8 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
   },
 
   loadSongs: async () => {
-    const songs = await getAllSongs();
+    const { sortColumn, sortDirection } = get();
+    const songs = await getAllSongs(sortColumn, sortDirection);
     set({ songs });
   },
 
@@ -78,15 +84,33 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
 
     set({ isScanning: true, scanProgress: null });
     try {
-      await scanFolder(folderPath, (progress) => {
+      const result = await scanFolder(folderPath, (progress) => {
         set({ scanProgress: progress });
       });
       await get().loadSongs();
+      // Show scan complete toast
+      useUiStore.getState().showToast(`Added ${result.added} songs, skipped ${result.skipped}`);
     } catch (err) {
       console.error("Scan failed:", err);
     } finally {
       set({ isScanning: false, scanProgress: null });
     }
+  },
+
+  setSortColumn: (col) => set({ sortColumn: col }),
+  setSortDirection: (dir) => set({ sortDirection: dir }),
+
+  toggleSort: (col) => {
+    const { sortColumn, sortDirection } = get();
+    if (sortColumn === col) {
+      // Same column: flip direction
+      const newDir: SortDirection = sortDirection === "asc" ? "desc" : "asc";
+      set({ sortDirection: newDir });
+    } else {
+      set({ sortColumn: col, sortDirection: "asc" });
+    }
+    // Reload songs with new sort
+    get().loadSongs();
   },
 }));
 

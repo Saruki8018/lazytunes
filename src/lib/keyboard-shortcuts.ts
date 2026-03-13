@@ -10,7 +10,15 @@ export function initKeyboardShortcuts(actions: {
   toggleMute: () => void;
 }): () => void {
   function handler(e: KeyboardEvent) {
-    // Don't trigger when typing in an input or contentEditable element
+    // Ctrl+F: focus search input regardless of where focus is
+    if (e.ctrlKey && e.code === "KeyF") {
+      e.preventDefault();
+      const focusSearch = (window as Record<string, unknown>).__focusSearch;
+      if (typeof focusSearch === "function") focusSearch();
+      return;
+    }
+
+    // Don't trigger player shortcuts when typing in an input or contentEditable
     const target = e.target as HTMLElement;
     const tag = target?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
