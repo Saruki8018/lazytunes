@@ -13,7 +13,7 @@ export function initKeyboardShortcuts(actions: {
     // Ctrl+F: focus search input regardless of where focus is
     if (e.ctrlKey && e.code === "KeyF") {
       e.preventDefault();
-      const focusSearch = (window as Record<string, unknown>).__focusSearch;
+      const focusSearch = (window as unknown as Record<string, unknown>).__focusSearch;
       if (typeof focusSearch === "function") focusSearch();
       return;
     }

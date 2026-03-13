@@ -27,7 +27,7 @@ function EqualizerBars({ active }: { active: boolean }) {
   );
 }
 
-function SortIcon({ column, active, direction }: { column: SortColumn; active: boolean; direction: "asc" | "desc" }) {
+function SortIcon({ active, direction }: { active: boolean; direction: "asc" | "desc" }) {
   if (!active) return <ChevronUp size={12} className="opacity-30" />;
   return direction === "asc" ? <ChevronUp size={12} /> : <ChevronDown size={12} />;
 }
@@ -42,7 +42,7 @@ export function LibraryPage() {
 
   // Expose search focus for Ctrl+F shortcut (called from keyboard-shortcuts)
   if (typeof window !== "undefined") {
-    (window as Record<string, unknown>).__focusSearch = () => searchRef.current?.focus();
+    (window as unknown as Record<string, unknown>).__focusSearch = () => searchRef.current?.focus();
   }
 
   const filtered = useMemo(() => {
@@ -123,7 +123,7 @@ export function LibraryPage() {
                         className="flex items-center gap-1 transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         {label}
-                        <SortIcon column={col} active={sortColumn === col} direction={sortDirection} />
+                        <SortIcon active={sortColumn === col} direction={sortDirection} />
                       </button>
                     </th>
                   ))}
