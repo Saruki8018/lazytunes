@@ -4,6 +4,12 @@ import { useLibraryStore } from "@/stores/library-store";
 export function SettingsPage() {
   const { folderPath, isScanning, scanProgress, songs, selectFolder, startScan } = useLibraryStore();
 
+  // Guard against division by zero — only compute percentage when total > 0
+  const scanPercent =
+    scanProgress && scanProgress.total > 0
+      ? (scanProgress.current / scanProgress.total) * 100
+      : 0;
+
   return (
     <div className="mx-auto max-w-lg p-6">
       <h1 className="mb-6 text-lg font-bold">Settings</h1>
@@ -47,7 +53,7 @@ export function SettingsPage() {
               <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
                 <div
                   className="h-full rounded-full bg-primary transition-all"
-                  style={{ width: `${(scanProgress.current / scanProgress.total) * 100}%` }}
+                  style={{ width: `${scanPercent}%` }}
                 />
               </div>
             </div>

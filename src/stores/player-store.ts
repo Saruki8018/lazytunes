@@ -196,7 +196,20 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
       set((s) => {
         const queue = [...s.queue];
         queue.splice(index, 1);
-        return { queue };
+
+        let queueIndex = s.queueIndex;
+        if (index < queueIndex) {
+          // Removed a song before the current one — shift index back
+          queueIndex--;
+        } else if (index === queueIndex) {
+          // Removed the currently playing song — stop playback
+          audioEngine.pause();
+          const currentSong = queue[queueIndex] ?? queue[queueIndex - 1] ?? null;
+          return { queue, queueIndex: currentSong ? Math.min(queueIndex, queue.length - 1) : -1, currentSong, isPlaying: false };
+        }
+        // index > queueIndex: no adjustment needed
+
+        return { queue, queueIndex };
       });
     },
 

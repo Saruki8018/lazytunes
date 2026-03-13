@@ -10,9 +10,11 @@ export function initKeyboardShortcuts(actions: {
   toggleMute: () => void;
 }): () => void {
   function handler(e: KeyboardEvent) {
-    // Don't trigger when typing in an input
-    const tag = (e.target as HTMLElement)?.tagName;
+    // Don't trigger when typing in an input or contentEditable element
+    const target = e.target as HTMLElement;
+    const tag = target?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (target?.isContentEditable) return;
 
     switch (e.code) {
       case "Space":

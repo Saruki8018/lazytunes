@@ -5,6 +5,12 @@ export function FolderPicker() {
   const { folderPath, isScanning, scanProgress, selectFolder, startScan, songs } =
     useLibraryStore();
 
+  // Guard against division by zero — only compute percentage when total > 0
+  const scanPercent =
+    scanProgress && scanProgress.total > 0
+      ? (scanProgress.current / scanProgress.total) * 100
+      : 0;
+
   return (
     <div className="flex flex-col items-center gap-4 rounded-lg border border-border bg-card p-6">
       {folderPath ? (
@@ -60,9 +66,7 @@ export function FolderPicker() {
           <div className="h-2 overflow-hidden rounded-full bg-secondary">
             <div
               className="h-full rounded-full bg-primary transition-all"
-              style={{
-                width: `${(scanProgress.current / scanProgress.total) * 100}%`,
-              }}
+              style={{ width: `${scanPercent}%` }}
             />
           </div>
         </div>

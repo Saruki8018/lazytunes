@@ -9,6 +9,7 @@ import { audioEngine } from "@/lib/audio-engine";
 import { AppLayout } from "@/components/layout/app-layout";
 import { LibraryPage } from "@/components/library/library-page";
 import { SettingsPage } from "@/components/settings/settings-page";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -54,13 +55,15 @@ export default function App() {
   }
 
   return (
-    <MemoryRouter>
-      <AppLayout>
-        <Routes>
-          <Route path="/" element={<LibraryPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Routes>
-      </AppLayout>
-    </MemoryRouter>
+    <ErrorBoundary>
+      <MemoryRouter>
+        <AppLayout>
+          <Routes>
+            <Route path="/" element={<LibraryPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Routes>
+        </AppLayout>
+      </MemoryRouter>
+    </ErrorBoundary>
   );
 }

@@ -9,11 +9,32 @@
     "sql:allow-execute",
     "sql:allow-select",
     "fs:default",
-    "fs:allow-read-file",
-    "fs:allow-read-dir",
+    {
+      "identifier": "fs:allow-read-file",
+      "allow": [
+        { "path": "$APPDATA/**" },
+        { "path": "$HOME/Music/**" },
+        { "path": "$AUDIO/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-dir",
+      "allow": [
+        { "path": "$APPDATA/**" },
+        { "path": "$HOME/Music/**" },
+        { "path": "$AUDIO/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-stat",
+      "allow": [
+        { "path": "$APPDATA/**" },
+        { "path": "$HOME/Music/**" },
+        { "path": "$AUDIO/**" }
+      ]
+    },
     "fs:allow-exists",
     "fs:allow-watch",
-    "fs:allow-stat",
     "dialog:default",
     "dialog:allow-open",
     "store:default",

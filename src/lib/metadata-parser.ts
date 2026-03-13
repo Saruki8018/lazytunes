@@ -5,6 +5,19 @@ import type { SongMetadata } from "./song-types";
 
 const MAX_COVER_ART_BYTES = 200 * 1024; // 200KB cap
 
+/**
+ * Convert Uint8Array to base64 string using chunked processing.
+ * Avoids "Maximum call stack size exceeded" from spread operator on large arrays.
+ */
+function uint8ToBase64(data: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < data.length; i += chunkSize) {
+    binary += String.fromCharCode(...data.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
 /** Extract metadata from a single audio file */
 export async function parseAudioFile(filePath: string): Promise<SongMetadata> {
   const fileBytes = await readFile(filePath);
@@ -16,7 +29,7 @@ export async function parseAudioFile(filePath: string): Promise<SongMetadata> {
   let coverArt: string | null = null;
   const picture = metadata.common.picture?.[0];
   if (picture && picture.data.length <= MAX_COVER_ART_BYTES) {
-    const base64 = btoa(String.fromCharCode(...picture.data));
+    const base64 = uint8ToBase64(picture.data);
     coverArt = `data:${picture.format};base64,${base64}`;
   }
 

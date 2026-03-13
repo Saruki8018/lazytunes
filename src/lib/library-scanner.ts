@@ -1,5 +1,5 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import { readDir } from "@tauri-apps/plugin-fs";
+import { readDir, stat } from "@tauri-apps/plugin-fs";
 import { parseAudioFile } from "./metadata-parser";
 import { getSongByPath, upsertSong, deleteSongsByPaths, getAllSongs, getSetting, setSetting } from "./song-queries";
 import { SUPPORTED_EXTENSIONS } from "./song-types";
@@ -79,12 +79,15 @@ export async function scanFolder(
     onProgress?.({ current: i + 1, total });
 
     try {
-      // Check if already indexed with same mtime (incremental scan)
+      // Incremental scan: skip only if DB mtime >= file's current mtime
       const existing = await getSongByPath(filePath);
       if (existing?.modified_at) {
-        // Skip detailed stat check — just trust existing entry for speed
-        skipped++;
-        continue;
+        const fileStat = await stat(filePath);
+        const fileMtime = fileStat.mtime ? new Date(fileStat.mtime).getTime() : 0;
+        if (existing.modified_at >= fileMtime) {
+          skipped++;
+          continue;
+        }
       }
 
       const metadata = await parseAudioFile(filePath);

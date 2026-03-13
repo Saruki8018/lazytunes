@@ -58,7 +58,10 @@ class AudioEngine {
   }
 
   resume() {
-    this.audio.play();
+    // Catch AbortError and NotAllowedError that browsers throw when play() is interrupted
+    this.audio.play().catch((err: unknown) => {
+      console.warn("resume() play rejected:", err);
+    });
   }
 
   seek(time: number) {

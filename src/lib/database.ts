@@ -1,12 +1,13 @@
 import Database from "@tauri-apps/plugin-sql";
 
-let db: Database | null = null;
+// Promise-based singleton prevents parallel load() calls racing each other
+let dbPromise: Promise<Database> | null = null;
 
-export async function getDb(): Promise<Database> {
-  if (!db) {
-    db = await Database.load("sqlite:lazytunes.db");
+export function getDb(): Promise<Database> {
+  if (!dbPromise) {
+    dbPromise = Database.load("sqlite:lazytunes.db");
   }
-  return db;
+  return dbPromise;
 }
 
 export async function initDb(): Promise<void> {
